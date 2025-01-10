@@ -1,0 +1,20 @@
+1. Any HA configured or standalone 
+2. Backup strategy (full, log or diff) 
+3. Any maintenance jobs? 
+4. Query store or any traces available for investigation 
+5. Sp_whoisactive installed? 
+6. Sp_configure settings 
+7. Memory configuration (max memory) 
+8. Parallelism configurations
+9. Size of the databases 
+10. Data files and log files are in seperate storage 
+11. Tempdb configurations 
+12. Version of the sql server and OS 
+13. Onprem or cloud etc..
+14. Users and their permissions 
+15. List down all logins/AD groups has higher privileges like sysadmin/db owner 
+16. Index Fragmentation
+17. List down any unused indexes
+18. Sql should be on the latest version and the latest patch/update 
+19. Database consistency check by running dbcc checkdb 
+20. Clustered index must exists on all the tables to improve the performance , list down any tables which doesn't have clustered index
