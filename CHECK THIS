@@ -1,0 +1,52 @@
+DECLARE @UserName NVARCHAR(100) = 'YourUserName';  -- Replace with your AD or SQL username
+DECLARE @DatabaseName NVARCHAR(256);
+DECLARE @SQL NVARCHAR(MAX);
+
+-- Create a temporary table to store results
+CREATE TABLE #UserPermissions (
+    DatabaseName NVARCHAR(256),
+    UserName NVARCHAR(100),
+    Permission NVARCHAR(100),
+    ObjectName NVARCHAR(256)
+);
+
+DECLARE db_cursor CURSOR FOR 
+SELECT name 
+FROM sys.databases 
+WHERE state_desc = 'ONLINE' AND database_id > 4; -- Exclude system databases
+
+OPEN db_cursor;
+FETCH NEXT FROM db_cursor INTO @DatabaseName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    SET @SQL = '
+    USE [' + @DatabaseName + ']; 
+    INSERT INTO #UserPermissions (DatabaseName, UserName, Permission, ObjectName)
+    SELECT 
+        ''' + @DatabaseName + ''', 
+        u.name AS UserName, 
+        p.permission_name AS Permission, 
+        o.name AS ObjectName
+    FROM 
+        sys.database_permissions p
+    INNER JOIN 
+        sys.objects o ON p.major_id = o.object_id
+    INNER JOIN 
+        sys.database_principals u ON p.grantee_principal_id = u.principal_id
+    WHERE 
+        u.name = ''' + @UserName + ''';';
+
+    EXEC sp_executesql @SQL;
+    
+    FETCH NEXT FROM db_cursor INTO @DatabaseName;
+END
+
+CLOSE db_cursor;
+DEALLOCATE db_cursor;
+
+-- Select results from the temporary table
+SELECT * FROM #UserPermissions;
+
+-- Clean up the temporary table
+DROP TABLE #UserPermissions;
