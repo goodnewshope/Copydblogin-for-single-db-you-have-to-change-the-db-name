@@ -1,0 +1,35 @@
+DECLARE @UserName NVARCHAR(100) = 'DBHData';
+DECLARE @DatabaseName NVARCHAR(256);
+DECLARE @SQL NVARCHAR(MAX);
+
+DECLARE db_cursor CURSOR FOR 
+SELECT name 
+FROM sys.databases 
+WHERE state_desc = 'ONLINE' AND database_id > 4; -- Exclude system databases
+
+OPEN db_cursor;
+FETCH NEXT FROM db_cursor INTO @DatabaseName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    SET @SQL = 'USE [' + @DatabaseName + ']; 
+    SELECT 
+        u.name AS ''User Name'', 
+        p.permission_name AS ''Permission'', 
+        o.name AS ''Object Name''
+    FROM 
+        sys.database_permissions p
+    INNER JOIN 
+        sys.objects o ON p.major_id = o.object_id
+    INNER JOIN 
+        sys.database_principals u ON p.grantee_principal_id = u.principal_id
+    WHERE 
+        u.name = ''' + @UserName + ''';';
+
+    EXEC sp_executesql @SQL;
+    
+    FETCH NEXT FROM db_cursor INTO @DatabaseName;
+END
+
+CLOSE db_cursor;
+DEALLOCATE db_cursor;
