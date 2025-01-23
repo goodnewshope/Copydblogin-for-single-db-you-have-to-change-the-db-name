@@ -1,0 +1,16 @@
+SELECT 
+    dp.name AS [AD_Group_Name],
+    db.name AS [Database_Name],
+    dp.type_desc AS [Account_Type],
+    CASE dp.type 
+        WHEN 'G' THEN 'Windows Group'
+        WHEN 'U' THEN 'Windows User'
+        ELSE dp.type_desc
+    END AS [Principal_Type],
+    p.state_desc AS [Permission_State],
+    p.permission_name AS [Permission]
+FROM sys.server_principals dp
+JOIN sys.databases db ON 1=1
+LEFT JOIN sys.server_permissions p ON dp.principal_id = p.grantee_principal_id
+WHERE dp.name LIKE '%DBHData%'
+ORDER BY db.name, p.permission_name;
