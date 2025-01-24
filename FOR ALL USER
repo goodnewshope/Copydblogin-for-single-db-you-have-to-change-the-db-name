@@ -1,0 +1,20 @@
+DECLARE @varCommand varchar(1000)
+
+SELECT @varCommand = 'IF ''?'' NOT IN(''master'', ''model'', ''msdb'', ''tempdb'')
+BEGIN
+	USE ?
+	PRINT DB_NAME()
+	SELECT	GETDATE() [Timestamp],
+			@@SERVERNAME [ServerName], 
+			DB_NAME() [DatabaseName],
+			a.[name] as [LoginName],
+			c.[name] as [RoleName]
+	FROM	sys.database_principals a
+	JOIN	sys.database_role_members b
+	  ON	a.principal_id = b.member_principal_id
+	JOIN	sys.database_principals c
+	  ON	b.role_principal_id = c.principal_id
+END'
+
+--PRINT @command
+EXEC sp_MSforeachdb @varCommand
