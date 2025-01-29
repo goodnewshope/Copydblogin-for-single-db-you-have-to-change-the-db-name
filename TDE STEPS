@@ -1,0 +1,63 @@
+Step 1: Install the EKM Provider ( need to work with the EKM provider to configure the EKM on the server to store the encryption keys)
+         Download and Install the SQL Server Connector for your chosen EKM provider.
+         Place the connector files in an appropriate directory, such as C:\Program Files\SQL Server Connector for Microsoft Azure Key Vault.
+
+2. Configure SQL Server for EKM
+	Enable the Cryptographic Provider:
+		Register the EKM provider in SQL Server using the CREATE CRYPTOGRAPHIC PROVIDER command:
+
+		CREATE CRYPTOGRAPHIC PROVIDER [EKM_Prov] -- Replace EKM_Prov with your the provider name and update the file path as applicable
+		FROM FILE = 'C:\EKM_Files\EKMProvider.dll';
+
+	
+
+3. Create a Credential for EKM:
+	Create a credential that SQL Server will use to authenticate with the external key store:
+
+		CREATE CREDENTIAL ekm_tde_cred 
+		WITH IDENTITY = 'YourIdentity', 
+     			SECRET = 'YourSecret'
+		FOR CRYPTOGRAPHIC PROVIDER [EKM_Prov];
+Note: Replace YourIdentity and YourSecret with credentials provided by your EKM vendor
+
+
+4. Associate Credential with a Login:
+	Associate the credential with a SQL Server login that will manage TDE:
+
+		ALTER LOGIN [YourLogin] 
+		ADD CREDENTIAL ekm_tde_cred;
+
+5. Create and Protect Keys
+	Create an Asymmetric Key in the External Key Store:
+		Generate an asymmetric key within the external key store using SQL Server:
+
+		USE master;
+		CREATE ASYMMETRIC KEY ekm_login_key 
+		FROM PROVIDER [EKM_Prov]
+		WITH ALGORITHM = RSA_512, 
+     		PROVIDER_KEY_NAME = 'SQL_Server_Key';
+Replace SQL_Server_Key with a name for the key in your external key store.
+
+6. Create a Database Encryption Key (DEK):
+	Use the external asymmetric key to protect the DEK for your database:
+
+		USE YourDatabase;
+		CREATE DATABASE ENCRYPTION KEY 
+		WITH ALGORITHM = AES_256 
+		ENCRYPTION BY SERVER ASYMMETRIC KEY ekm_login_key;
+
+7. Enable TDE
+	Enable TDE for your database:
+
+		ALTER DATABASE YourDatabase 
+		SET ENCRYPTION ON;
+
+8. Validate Configuration
+	Verify encryption status using the following query:
+
+		SELECT db.name, db.is_encrypted, dek.encryption_state
+		FROM sys.databases db
+		LEFT JOIN sys.dm_database_encryption_keys dek
+		ON db.database_id = dek.database_id;
+
+Note: Ensure is_encrypted is set to 1 and encryption_state indicates active encryption
