@@ -1,0 +1,61 @@
+USE master;
+GO
+
+-- Create Master Key
+CREATE MASTER KEY ENCRYPTION BY PASSWORD = '<MasterKeyPassword>';
+GO
+
+-- Create Certificate
+CREATE CERTIFICATE MyServerCert WITH SUBJECT = 'My TDE Certificate';
+GO
+
+-- Switch to your database
+USE YourDatabase;
+GO
+
+-- Create Database Encryption Key
+CREATE DATABASE ENCRYPTION KEY
+WITH ALGORITHM = AES_256
+ENCRYPTION BY SERVER CERTIFICATE MyServerCert;
+GO
+
+-- Enable TDE
+ALTER DATABASE YourDatabase
+SET ENCRYPTION ON;
+GO
+[11:50 AM, 1/29/2025] Chandu India Class: Backup certificate and private key 
+
+BACKUP CERTIFICATE MyServerCert 
+TO FILE = 'C:\TDE_Backups\MyServerCert.cer'
+WITH PRIVATE KEY 
+(
+    FILE = 'C:\TDE_Backups\MyServerCert_PrivateKey.pvk',
+    ENCRYPTION BY PASSWORD = '<PrivateKeyPassword>'
+);
+
+You can generate the password using keypass and store them
+Verify TDE status
+
+SELECT DB_NAME(database_id) AS DatabaseName, 
+       encryption_state, 
+       key_algorithm, 
+       key_length
+FROM sys.dm_database_encryption_keys;
+
+If it's on the same server. You no need anything additional because the master database has the certificate. If you wanted to restore on another database, the below steps to follow
+
+
+1. Backup the certificate and private key from source server 
+2. Create or open master key as below
+ 
+USE master;
+CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'StrongMasterKeyPassword123!';
+
+3. Restore TDE certificate backed up on step1 
+CREATE CERTIFICATE TDECert
+FROM FILE = 'C:\SQLBackups\TDECert.cer'
+WITH PRIVATE KEY (
+    FILE = 'C:\SQLBackups\TDECert_key.pvk',
+    DECRYPTION BY PASSWORD = 'StrongPassword123!'
+);
+4. Restore the database from backup
