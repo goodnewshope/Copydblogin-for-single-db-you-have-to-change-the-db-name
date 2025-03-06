@@ -1,0 +1,3 @@
+CAST((CAST(DATEDIFF(s, bs.backup_start_date, bs.backup_finish_date) AS int))/3600 AS varchar) + ' hours, ' 
+    + CAST((CAST(DATEDIFF(s, bs.backup_start_date, bs.backup_finish_date) AS int))/60 AS varchar)+ ' minutes, ' 
+    + CAST((CAST(DATEDIFF(s, bs.backup_start_date, bs.backup_finish_date) AS int))%60 AS varchar)+ ' seconds' AS 'Duration',
