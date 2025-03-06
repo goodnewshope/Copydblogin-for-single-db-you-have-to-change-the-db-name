@@ -1,0 +1,23 @@
+SELECT TOP 20
+    q.query_id,
+    qt.query_text_id,
+    SUBSTRING(qt.query_sql_text, 1, 100) AS query_sql_text,
+    p.plan_id,
+    rs.runtime_stats_id,
+    rs.execution_type,
+    rs.count_executions,
+    rs.avg_cpu_time,
+    rs.avg_logical_io_reads,
+    CAST(100.0 * rs.avg_cpu_time * rs.count_executions / 
+        SUM(rs.avg_cpu_time * rs.count_executions) OVER () AS DECIMAL(5,2)) AS cpu_percentage,
+    CAST(100.0 * rs.avg_logical_io_reads * rs.count_executions / 
+        SUM(rs.avg_logical_io_reads * rs.count_executions) OVER () AS DECIMAL(5,2)) AS lio_percentage
+FROM 
+    sys.query_store_query q
+    JOIN sys.query_store_query_text qt ON q.query_text_id = qt.query_text_id
+    JOIN sys.query_store_plan p ON q.query_id = p.query_id
+    JOIN sys.query_store_runtime_stats rs ON p.plan_id = rs.plan_id
+WHERE 
+    rs.last_execution_time >= DATEADD(HOUR, -24, GETUTCDATE())
+ORDER BY 
+    cpu_percentage DESC, lio_percentage DESC;
